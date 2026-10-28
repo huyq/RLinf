@@ -12,27 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
+from rlinf.envs.utils import partition_success_seeds
 
-
-def partition_success_seeds(
-    success_seeds: torch.Tensor,
-    *,
-    base_seed: int,
-    seed_offset: int,
-    total_num_processes: int,
-    num_group: int,
-) -> torch.Tensor:
-    """Shuffle success seeds globally and return the non-overlapping worker slice."""
-    global_generator = torch.Generator()
-    global_generator.manual_seed(base_seed)
-    shuffled_indices = torch.randperm(success_seeds.numel(), generator=global_generator)
-    shuffled_seeds = success_seeds[shuffled_indices]
-
-    seeds_per_worker = shuffled_seeds.numel() // total_num_processes
-    start = seed_offset * seeds_per_worker
-    end = start + seeds_per_worker
-    worker_seeds = shuffled_seeds[start:end]
-
-    keep_count = (worker_seeds.numel() // num_group) * num_group
-    return worker_seeds[:keep_count]
+__all__ = ["partition_success_seeds"]

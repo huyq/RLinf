@@ -22,6 +22,22 @@ from PIL import Image, ImageDraw, ImageFont
 _tf = None
 
 
+def partition_success_seeds(
+    success_seeds: torch.Tensor,
+    *,
+    base_seed: int,
+    seed_offset: int,
+    total_num_processes: int,
+    num_group: int,
+) -> torch.Tensor:
+    """Shuffle saved seeds and return complete groups from one worker's slice."""
+    generator = torch.Generator().manual_seed(base_seed)
+    seeds = success_seeds[torch.randperm(success_seeds.numel(), generator=generator)]
+    per_worker = seeds.numel() // total_num_processes
+    seeds = seeds[seed_offset * per_worker : (seed_offset + 1) * per_worker]
+    return seeds[: (seeds.numel() // num_group) * num_group]
+
+
 def _get_tensorflow():
     global _tf
     if _tf is None:

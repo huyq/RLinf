@@ -4,6 +4,26 @@ on:
   workflow_call:
 
 jobs:
+  build-embodied-robodojo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize storage space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          docker system prune -af
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build RoboDojo environment image
+        uses: docker/build-push-action@v6
+        with:
+          file: ./docker/Dockerfile
+          push: false
+          build-args: |
+            BUILD_TARGET=embodied-robodojo
+            NO_MIRROR=1
+          outputs: type=cacheonly
+          tags: rlinf:embodied-robodojo
+
   build-reason-torch26:
     runs-on: ubuntu-latest
     steps:

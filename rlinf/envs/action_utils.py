@@ -369,7 +369,7 @@ def prepare_actions(
             action_scale=action_scale,
             policy=policy,
         )
-    elif env_type == SupportedEnvType.ROBOTWIN:
+    elif env_type in (SupportedEnvType.ROBOTWIN, SupportedEnvType.ROBODOJO):
         chunk_actions = raw_chunk_actions
     elif env_type == SupportedEnvType.EMBODICHAIN:
         chunk_actions = raw_chunk_actions

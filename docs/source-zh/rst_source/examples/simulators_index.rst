@@ -182,6 +182,14 @@
 
    </div>
 
+.. grid:: 1
+
+   .. grid-item-card:: RoboDojo 环境
+      :link: embodied/robodojo
+      :link-type: doc
+
+      通过环境适配层运行双臂场景，并执行不加载模型的 smoke 检查。
+
 .. toctree::
    :hidden:
    :maxdepth: 2
@@ -195,6 +203,7 @@
    RoboCasa <embodied/robocasa>
    RoboCasa365 <embodied/robocasa365>
    RoboTwin <embodied/robotwin>
+   RoboDojo <embodied/robodojo>
    RoboVerse <embodied/roboverse>
    Franka-Sim <embodied/frankasim>
    EmbodiChain <embodied/embodichain>

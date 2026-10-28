@@ -4,6 +4,28 @@ on:
   workflow_call:
 
 jobs:
+  embodied-robodojo-env-test:
+    if: ${{ vars.ROBODOJO_ASSETS_ROOT != '' }}
+    runs-on: embodied
+    env:
+      ROBODOJO_ASSETS_ROOT: ${{ vars.ROBODOJO_ASSETS_ROOT }}
+      OMNI_KIT_ACCEPT_EULA: "YES"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install RoboDojo simulator
+        timeout-minutes: 60
+        run: |
+          unset UV_DEFAULT_INDEX
+          bash requirements/install.sh embodied --env robodojo --venv .robodojo-venv
+      - name: Check real simulator reset and control
+        timeout-minutes: 20
+        run: |
+          source .robodojo-venv/bin/activate
+          PYTHONPATH="$PWD" python tests/e2e_tests/embodied/robodojo_smoke.py --num-envs 2
+      - name: Clean up
+        if: always()
+        run: rm -rf .robodojo-venv
+
   embodied-mlp-sac-maniskill-test:
     runs-on: embodied
     steps:
