@@ -1,0 +1,18 @@
+defaults:
+- qwen3_8_27b_grpo
+- _self_
+runner:
+  task_type: reasoning_eval
+  max_epochs: 1
+  experiment_name: robodojo-qwen3_8-27b-eval
+  logger:
+    log_path: ./logs/robodojo-qwen3_8-27b-eval
+    experiment_name: robodojo-qwen3_8-27b-eval
+algorithm:
+  group_size: 1
+  sampling_params:
+    do_sample: false
+data:
+  repeat: 1
+  val_rollout_batch_size: 4
+  validation_shuffle: false

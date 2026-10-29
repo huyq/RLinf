@@ -168,6 +168,14 @@ class SGLangWorker(Worker):
             "moe_dp_size": self._cfg_rollout.sglang.get("moe_dp_size", 1),
             "moe_a2a_backend": self._cfg_rollout.sglang.get("moe_a2a_backend", None),
         }
+        for name in (
+            "context_length",
+            "chunked_prefill_size",
+            "weight_loader_disable_mmap",
+            "model_loader_extra_config",
+        ):
+            if name in self._cfg_rollout.sglang:
+                version_dependent_args[name] = self._cfg_rollout.sglang[name]
         for name in list(version_dependent_args):
             if name in _SERVER_ARGS_FIELDS:
                 continue
@@ -521,6 +529,7 @@ class SGLangWorker(Worker):
         channel_key: str,
         prompt_ids: list[int],
         sampling_params: Optional[dict] = None,
+        image_data: Optional[list] = None,
     ):
         final_sampling_params = self._sampling_params
         if sampling_params is not None and len(sampling_params) > 0:
@@ -532,6 +541,7 @@ class SGLangWorker(Worker):
             input_ids=prompt_ids,
             sampling_params=final_sampling_params,
             return_logprob=self._return_logprobs,
+            **({"image_data": image_data} if image_data is not None else {}),
         )
         # sglang will trim matched stop in result text, so we should only return output_ids
         result_dict = {
@@ -555,5 +565,6 @@ class SGLangWorker(Worker):
                     channel_key=rollout_request["channel_key"],
                     prompt_ids=rollout_request["prompt_ids"],
                     sampling_params=rollout_request.get("sampling_params", None),
+                    image_data=rollout_request.get("image_data"),
                 )
             )

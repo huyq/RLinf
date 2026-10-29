@@ -214,7 +214,8 @@ def compute_ppo_actor_loss(
     if fast_path_zero_loss_mask and (
         loss_mask is not None and loss_mask[0].sum() == 0.0
     ):
-        return torch.tensor(0.0, device=logprobs.device), {
+        # Padded FSDP ranks must still traverse the policy backward graph.
+        return logprobs.sum() * 0.0, {
             "actor/token_num": torch.tensor(0.0, device=logprobs.device),
             "actor/policy_loss": torch.tensor(0.0, device=logprobs.device),
             "actor/policy_loss_mbs_mean": torch.tensor(0.0, device=logprobs.device),

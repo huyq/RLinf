@@ -3,6 +3,8 @@ Use RoboDojo Environments
 
 Drive RoboDojo tasks with LLM function calls, read structured robot feedback, and check the interaction with a model-free smoke run. Bind the environment to an agent tool adapter; your agent loop supplies model generation and formats observations for the LLM.
 
+For camera-conditioned LLM RL, continue with :doc:`../agentic/robodojo`.
+
 Overview
 --------
 

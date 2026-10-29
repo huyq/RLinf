@@ -57,7 +57,7 @@ class NativeEnv:
         return {
             "state": self.state.copy(),
             "instruction": f"task seed {self.seed}",
-            "full_image": np.zeros((8, 8, 3), dtype=np.uint8),
+            "full_image": np.full((8, 8, 3), min(self.count, 255), dtype=np.uint8),
             "left_wrist_image": np.zeros((8, 8, 3), dtype=np.uint8),
             "right_wrist_image": np.zeros((8, 8, 3), dtype=np.uint8),
         }
@@ -97,7 +97,10 @@ class NativeEnv:
             self.state = np.array(action, dtype=float)
             self.count += 1
             executed += 1
-            if self.count >= self.task_config.get("finish_at", 1000):
+            if self.count >= self.task_config.get("finish_at", 1000) or (
+                "success_target" in self.task_config
+                and self.state[0] >= self.task_config["success_target"]
+            ):
                 self.done = True
                 score = 1.0
         return (

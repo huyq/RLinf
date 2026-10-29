@@ -138,6 +138,7 @@ class AgentLoopWorker(Worker):
         prompt_ids: list[int],
         sampling_params: Optional[dict] = None,
         rollout_name: Optional[str] = None,
+        image_data: Optional[list] = None,
     ):
         channel_key = uuid4().hex
         if rollout_name is None:
@@ -149,6 +150,7 @@ class AgentLoopWorker(Worker):
                 "channel_key": channel_key,
                 "prompt_ids": prompt_ids,
                 "sampling_params": sampling_params,
+                **({"image_data": image_data} if image_data is not None else {}),
             },
             async_op=True,
         ).async_wait()

@@ -1,0 +1,192 @@
+defaults:
+- override hydra/job_logging: stdout
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+cluster:
+  num_nodes: 1
+  component_placement:
+    actor,rollout,reward: all
+runner:
+  task_type: reasoning
+  logger:
+    log_path: ./logs/robodojo-qwen3_8-27b-grpo
+    project_name: rlinf
+    experiment_name: robodojo-qwen3_8-27b-grpo
+    logger_backends:
+    - tensorboard
+  max_epochs: 10
+  max_steps: 100
+  val_check_interval: -1
+  save_interval: 10
+  seq_length: 8192
+  enable_dynamic_batch_size: false
+  max_tokens_per_mbs: 8192
+  resume_dir: null
+  experiment_name: robodojo-qwen3_8-27b-grpo
+  output_dir: ./logs
+algorithm:
+  group_size: 4
+  n_minibatches: 1
+  training_batch_size_per_gpu: 1
+  rollout_batch_size_per_gpu: null
+  logprob_forward_micro_batch_size: 1
+  val_rollout_batch_size_per_gpu: 1
+  recompute_logprobs: false
+  shuffle_rollout: false
+  loss_type: actor
+  loss_agg_func: token-mean
+  kl_beta: 0.0
+  kl_penalty_type: low_var_kl
+  ratio_clip_eps: 0.2
+  entropy_bonus: 0.0
+  calculate_entropy: false
+  clip_ratio_c: null
+  clip_ratio_low: null
+  clip_ratio_high: null
+  adv_type: grpo_dynamic
+  loss_scales:
+  - group_level
+  - agent_level
+  - turn_level
+  advantage_mode: trajectory
+  normalize_advantages: false
+  early_stop_imp_ratio: 5.0
+  use_valid_token_scale: false
+  sampling_params:
+    do_sample: true
+    temperature: 1.0
+    top_k: -1
+    top_p: 1.0
+    repetition_penalty: 1.0
+    max_new_tokens: 512
+    min_new_tokens: 1
+    stop: []
+data:
+  type: robodojo
+  max_prompt_length: 7168
+  rollout_batch_size: 4
+  val_rollout_batch_size: null
+  num_workers: 0
+  shuffle: true
+  seed: 1234
+  layout_seeds:
+  - 0
+  - 1
+  - 2
+  - 3
+  repeat: 64
+agentloop:
+  group_name: AgentLoopGroup
+  max_turns: 32
+  image_size: 256
+  print_outputs: false
+  is_dynamic_rollout_batch: true
+rollout:
+  group_name: RolloutGroup
+  gpu_memory_utilization: 0.7
+  model:
+    model_path: ${model_path}
+    model_type: qwen3_5
+    precision: bf16
+    trust_remote_code: false
+  enforce_eager: true
+  distributed_executor_backend: mp
+  disable_log_stats: false
+  detokenize: true
+  padding: null
+  eos: null
+  return_logprobs: true
+  rollout_backend: sglang
+  sglang:
+    attention_backend: triton
+    decode_log_interval: 500000
+    use_torch_compile: false
+    torch_compile_max_bs: 128
+  vllm:
+    attention_backend: FLASH_ATTN
+    enable_chunked_prefill: true
+    enable_prefix_caching: true
+    enable_flash_infer_sampler: true
+    max_num_batched_tokens: null
+    torch_profiler_dir: null
+  tensor_parallel_size: 4
+  pipeline_parallel_size: 1
+  max_running_requests: 16
+  cuda_graph_max_bs: 16
+  validate_weight_first_sync: true
+  validate_weight: false
+  validate_save_dir: null
+  print_outputs: false
+reward:
+  group_name: RewardGroup
+  use_reward_model: false
+  reward_type: robodojo
+  reward_scale: 1.0
+  tokenizer:
+    tokenizer_model: ${actor.tokenizer.tokenizer_model}
+    use_fast: ${actor.tokenizer.use_fast}
+    trust_remote_code: ${actor.tokenizer.trust_remote_code}
+    padding_side: ${actor.tokenizer.padding_side}
+actor:
+  group_name: ActorGroup
+  training_backend: fsdp
+  enable_dp_load_balance: true
+  calculate_flops: false
+  seed: 1234
+  pack_traj: false
+  enable_offload: true
+  sync_precision: bf16
+  model:
+    model_type: qwen3_5
+    model_path: ${model_path}
+    precision: bf16
+    seq_length: 8192
+    encoder_seq_length: 8192
+    is_lora: false
+  optim:
+    optimizer: adam
+    lr: 1.0e-06
+    lr_scheduler: constant
+    total_training_steps: 100
+    lr_warmup_steps_ratio: 0.0
+    adam_beta1: 0.9
+    adam_beta2: 0.95
+    adam_eps: 1.0e-05
+    min_lr: 0.0
+    weight_decay: 0.01
+    clip_grad: 0.8
+  tokenizer:
+    tokenizer_model: ${model_path}
+    use_fast: false
+    trust_remote_code: false
+    padding_side: right
+  fsdp_config:
+    strategy: fsdp2
+    sharding_strategy: full_shard
+    gradient_checkpointing: true
+    cpu_offload: false
+    offload_pin_memory: true
+    reshard_after_forward: true
+    enable_gradient_accumulation: true
+    forward_prefetch: false
+    limit_all_gathers: false
+    backward_prefetch: null
+    use_orig_params: false
+    use_liger_kernel: false
+    mixed_precision:
+      param_dtype: bf16
+      reduce_dtype: fp32
+      buffer_dtype: bf16
+    amp_autocast:
+      enabled: false
+      precision: bf16
+    grad_scaler:
+      enabled: false
+critic:
+  use_critic_model: false
+model_path: /mnt/nas/huyuanquan/models/Qwen3.8-27B
+robodojo:
+  server_url: http://127.0.0.1:8090
+  request_timeout: 1800

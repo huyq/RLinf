@@ -3,6 +3,8 @@
 
 通过 LLM 函数调用控制 RoboDojo 任务，读取结构化机器人反馈，并用不加载模型的 smoke 测试检查交互链路。将环境绑定到 agent 工具适配器，由 agent loop 负责模型生成，以及面向 LLM 的观测转换。
 
+使用相机图像进行 LLM RL 训练，见 :doc:`../agentic/robodojo`。
+
 概览
 ----
 

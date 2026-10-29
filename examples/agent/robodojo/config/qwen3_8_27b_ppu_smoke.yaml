@@ -1,0 +1,37 @@
+defaults:
+- qwen3_8_27b_eval
+- _self_
+
+cluster:
+  component_placement:
+    actor,rollout,reward: 0
+runner:
+  seq_length: 4096
+  max_steps: 1
+  experiment_name: robodojo-qwen3_8-27b-ppu-smoke
+  logger:
+    experiment_name: robodojo-qwen3_8-27b-ppu-smoke
+    logger_backends: []
+data:
+  max_prompt_length: 3584
+  rollout_batch_size: 1
+  val_rollout_batch_size: 1
+  layout_seeds: [0]
+  repeat: 1
+agentloop:
+  max_turns: 2
+rollout:
+  tensor_parallel_size: 1
+  gpu_memory_utilization: 0.78
+  max_running_requests: 1
+  cuda_graph_max_bs: 1
+  sglang:
+    context_length: 4096
+    chunked_prefill_size: 2048
+    weight_loader_disable_mmap: true
+    model_loader_extra_config: '{"enable_multithread_load": true, "num_threads": 1}'
+algorithm:
+  sampling_params:
+    max_new_tokens: 256
+robodojo:
+  server_url: http://127.0.0.1:18090

@@ -1,0 +1,67 @@
+--- a/sglang/srt/layers/attention/fla/fused_recurrent.py
++++ b/sglang/srt/layers/attention/fla/fused_recurrent.py
+@@ -375,7 +375,7 @@
+     from sglang.srt.utils import logger
+ 
+     if envs.SGLANG_SAIL_FLA_CUDA.get():
+-        from fla import (
++        from fused_sigmoid_gating import (
+             fused_sigmoid_gating_delta_rule_forward_k_last_packed,
+         )
+ 
+@@ -395,15 +395,15 @@
+             torch.arange(B + 1, device=a.device, dtype=torch.int32),
+             False,
+         )
+-        logger.info_once(
++        logger.debug(
+             f"USE PPU SAIL CUDA FLA kernel: fused_sigmoid_gating_delta_rule_forward_k_last_packed"
+         )
+-        logger.warning_once(
++        logger.debug(
+             f"Note: SAIL FLA kernel use HARD-CODE Softplus value:20!! Check if the community Triton implementation modifies softplus numerical values."
+         )
+         return out, initial_state
+ 
+-    logger.info_once(
++    logger.debug(
+         f"USE Community SGLang Triton Kernel: fused_recurrent_gated_delta_rule_packed_decode_kernel"
+     )
+     fused_recurrent_gated_delta_rule_packed_decode_kernel[grid](
+--- a/sglang/srt/layers/attention/fla/fused_sigmoid_gating_recurrent.py
++++ b/sglang/srt/layers/attention/fla/fused_sigmoid_gating_recurrent.py
+@@ -487,9 +487,9 @@
+     grid = (NK, NV, N * HV)
+ 
+     if envs.SGLANG_SAIL_FLA_CUDA.get():
+-        from fla import fused_sigmoid_gating_delta_rule_forward_k_last
+-
+-        logger.info_once(
++        from fused_sigmoid_gating import fused_sigmoid_gating_delta_rule_forward_k_last
++
++        logger.debug(
+             f"USE PPU SAIL CUDA FLA kernel: fused_sigmoid_gating_delta_rule_forward_k_last"
+         )
+ 
+@@ -518,7 +518,7 @@
+         )
+         return output
+ 
+-    logger.info_once(
++    logger.debug(
+         f"USE Community SGLang Triton Kernel: fused_sigmoid_gating_delta_rule_update_kernel"
+     )
+     fused_sigmoid_gating_delta_rule_update_kernel[grid](
+--- a/sglang/srt/multimodal/processors/qwen_vl.py
++++ b/sglang/srt/multimodal/processors/qwen_vl.py
+@@ -581,8 +581,8 @@
+             ),
+             # use the expanded token ids
+             input_ids=input_ids.unsqueeze(0),
+-            image_grid_thw=getattr(ret, "image_grid_thw", None),
+-            video_grid_thw=getattr(ret, "video_grid_thw", None),
++            image_grid_thw=image_grid_thw,
++            video_grid_thw=video_grid_thw,
+             second_per_grid_ts=second_per_grid_ts,
+             use_audio_in_video=False,
+             audio_seqlens=audio_feature_lengths,

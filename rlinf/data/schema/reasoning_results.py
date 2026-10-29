@@ -842,6 +842,7 @@ class DynamicRolloutResult:
     is_end: list[bool]
     rewards: Optional[torch.Tensor | list[float]] = None
     advantages: Optional[torch.Tensor] = None
+    multi_modal_inputs: Optional[list[dict[str, torch.Tensor]]] = None
 
     # extra fields used in training for custom process
     extra_fields_train: dict[str, list] = field(default_factory=dict)
@@ -878,6 +879,7 @@ class DynamicRolloutResult:
         self,
         seq_length: int,
         pad_token: int,
+        device: str | torch.device | None = None,
     ) -> dict[str, torch.Tensor]:
         """
         Transform the rollout result into a format suitable for the actor.
@@ -885,6 +887,7 @@ class DynamicRolloutResult:
         Args:
             seq_length (int): Total sequence length for training, e.g., 8192.
             pad_token (int): Token used for padding, e.g., `tokenizer.pad_token_id`.
+            device: Target device; defaults to the worker accelerator.
 
         Returns:
             Dict[str, torch.Tensor]: A dictionary with keys:
@@ -928,6 +931,7 @@ class DynamicRolloutResult:
         #           |<----- true response length ----->|<--- padding --->|
         #           |<------------------ cfg.runner.seq_length --------->|
 
+        device = Worker.torch_device_type if device is None else device
         prompt_lengths = torch.tensor(self.prompt_lengths, dtype=torch.int32)
         response_lengths = torch.tensor(self.response_lengths, dtype=torch.int32)
         is_end = torch.tensor(self.is_end, dtype=torch.bool)
@@ -948,28 +952,30 @@ class DynamicRolloutResult:
 
         batch = {
             "idx_to_traj": self.idx_to_traj,
-            "input_ids": input_ids.cuda(),
-            "attention_mask": attention_mask.cuda(),
-            "response_mask": response_mask.cuda(),
-            "position_ids": position_ids.cuda(),
-            "is_end": is_end.cuda(),
-            "prompt_lengths": prompt_lengths.cuda(),
-            "response_lengths": response_lengths.cuda(),
+            "input_ids": input_ids.to(device),
+            "attention_mask": attention_mask.to(device),
+            "response_mask": response_mask.to(device),
+            "position_ids": position_ids.to(device),
+            "is_end": is_end.to(device),
+            "prompt_lengths": prompt_lengths.to(device),
+            "response_lengths": response_lengths.to(device),
             **{
-                f"extra:{k}": torch.as_tensor(v).cuda()
+                f"extra:{k}": torch.as_tensor(v).to(device)
                 for k, v in self.extra_fields_train.items()
             },
         }
 
         if self.advantages is not None:
-            batch["advantages"] = self.advantages.cuda()
+            batch["advantages"] = self.advantages.to(device)
 
         if self.rewards is not None:
             if isinstance(self.rewards, torch.Tensor):
-                batch["rewards"] = self.rewards.cuda()
+                batch["rewards"] = self.rewards.to(device)
             else:
                 batch["rewards"] = (
-                    torch.as_tensor(self.rewards, dtype=torch.float).cuda().flatten()
+                    torch.as_tensor(self.rewards, dtype=torch.float)
+                    .to(device)
+                    .flatten()
                 )
 
         if self.rollout_logprobs is not None:
@@ -983,12 +989,19 @@ class DynamicRolloutResult:
                 max_batch_len=seq_length,
                 pad_token=0,
             )
-            batch["rollout_logprobs"] = logprobs.to(Worker.torch_device_type)
+            batch["rollout_logprobs"] = logprobs.to(device)
 
         if self.recomputed_logprobs is not None:
-            batch["recomputed_logprobs"] = self.recomputed_logprobs.cuda()
+            batch["recomputed_logprobs"] = self.recomputed_logprobs.to(device)
         if self.ref_logprobs is not None:
-            batch["ref_logprobs"] = self.ref_logprobs.cuda()
+            batch["ref_logprobs"] = self.ref_logprobs.to(device)
+
+        if self.multi_modal_inputs is not None:
+            if len(self.multi_modal_inputs) != self.num_sequence:
+                raise ValueError(
+                    "Expected one multimodal input dictionary per dynamic turn."
+                )
+            batch["multi_modal_inputs"] = self.multi_modal_inputs
 
         return batch
 
@@ -1000,46 +1013,44 @@ class DynamicRolloutResult:
 
         pad_seq_shape = (1, seq_length)
         attention_mask = torch.zeros(
-            *pad_seq_shape, dtype=torch.bool, device=torch.cuda.current_device()
+            *pad_seq_shape, dtype=torch.bool, device=Worker.torch_device_type
         )
         attention_mask[:, :1] = True
         batch_pad = {
             "input_ids": torch.zeros(
-                *pad_seq_shape, dtype=torch.long, device=torch.cuda.current_device()
+                *pad_seq_shape, dtype=torch.long, device=Worker.torch_device_type
             ),
             "attention_mask": attention_mask,
             "response_mask": torch.zeros(
-                *pad_seq_shape, dtype=torch.bool, device=torch.cuda.current_device()
+                *pad_seq_shape, dtype=torch.bool, device=Worker.torch_device_type
             ),
             "position_ids": torch.zeros(
-                *pad_seq_shape, dtype=torch.long, device=torch.cuda.current_device()
+                *pad_seq_shape, dtype=torch.long, device=Worker.torch_device_type
             ),
-            "is_end": torch.zeros(
-                1, dtype=torch.bool, device=torch.cuda.current_device()
-            ),
+            "is_end": torch.zeros(1, dtype=torch.bool, device=Worker.torch_device_type),
             "prompt_lengths": torch.zeros(
-                1, dtype=torch.int32, device=torch.cuda.current_device()
+                1, dtype=torch.int32, device=Worker.torch_device_type
             ),
             "response_lengths": torch.zeros(
-                1, dtype=torch.int32, device=torch.cuda.current_device()
+                1, dtype=torch.int32, device=Worker.torch_device_type
             ),
             "ref_logprobs": torch.zeros(
-                *pad_seq_shape, dtype=torch.float32, device=torch.cuda.current_device()
+                *pad_seq_shape, dtype=torch.float32, device=Worker.torch_device_type
             ),
             "recomputed_logprobs": torch.zeros(
-                *pad_seq_shape, dtype=torch.float32, device=torch.cuda.current_device()
+                *pad_seq_shape, dtype=torch.float32, device=Worker.torch_device_type
             ),
             "rollout_logprobs": torch.zeros(
-                *pad_seq_shape, dtype=torch.float32, device=torch.cuda.current_device()
+                *pad_seq_shape, dtype=torch.float32, device=Worker.torch_device_type
             ),
             "rewards": torch.zeros(
-                1, dtype=torch.float32, device=torch.cuda.current_device()
+                1, dtype=torch.float32, device=Worker.torch_device_type
             ),
             "advantages": torch.zeros(
-                *pad_seq_shape, dtype=torch.float32, device=torch.cuda.current_device()
+                *pad_seq_shape, dtype=torch.float32, device=Worker.torch_device_type
             ),
             "loss_scales": torch.zeros(
-                *pad_seq_shape, dtype=torch.float32, device=torch.cuda.current_device()
+                *pad_seq_shape, dtype=torch.float32, device=Worker.torch_device_type
             ),
         }
         batch_pad = {k: v for k, v in batch_pad.items() if k in available_keys}
@@ -1309,6 +1320,11 @@ class DynamicRolloutResult:
                     merged_result.rollout_logprobs or []
                 ) + list(res.rollout_logprobs)
 
+            if res.multi_modal_inputs is not None:
+                merged_result.multi_modal_inputs = merge_list(
+                    merged_result.multi_modal_inputs, res.multi_modal_inputs
+                )
+
             # Merge tensor fields (size: num_sequence)
             if res.recomputed_logprobs is not None:
                 merged_result.recomputed_logprobs = merge_tensor(
@@ -1406,6 +1422,9 @@ class DynamicRolloutResult:
                 group_size=rollout_result.group_size,
                 idx_to_traj=split_idx_to_traj,
                 input_ids=split_input_ids,
+                multi_modal_inputs=rollout_result.multi_modal_inputs[start_idx:end_idx]
+                if rollout_result.multi_modal_inputs is not None
+                else None,
                 rollout_logprobs=split_rollout_logprobs,
                 recomputed_logprobs=split_recomputed_logprobs,
                 ref_logprobs=split_ref_logprobs,

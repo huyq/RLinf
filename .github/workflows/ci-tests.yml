@@ -183,6 +183,7 @@ jobs:
               # sampler), so env changes have to trigger this job.
               - 'rlinf/envs/**'
               - 'rlinf/agents/robodojo/**'
+              - 'examples/agent/robodojo/**'
               - 'tests/robot_mocks/robodojo_runtime/**'
               - 'rlinf/workers/actor/fsdp_actor_worker_pipeline.py'
               # test_data.py loads this script to test reward split preprocessing.

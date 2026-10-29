@@ -33,6 +33,7 @@ RLinf is a flexible and scalable open-source RL infrastructure designed for Embo
 
 ## What's NEW!
 
+- [2026/10] Add camera-conditioned Qwen3.8-27B GRPO training on RoboDojo, with FSDP2, simulator sessions, and mock-runtime tests. Doc: [RoboDojo agent](https://rlinf.readthedocs.io/en/latest/rst_source/examples/agentic/robodojo.html).
 - [2026/10] Add a RoboDojo environment adapter and model-free simulator smoke check. Doc: [RoboDojo](https://rlinf.readthedocs.io/en/latest/rst_source/examples/embodied/robodojo.html).
 
 - [2026/10] 🎉 RLinf v0.4 is released, taking RL out of simulation and into agile control of the physical world. Highlights: a modular real-robot system (`rlinf.robotics`), real-robot SOTA post-training algorithms (RLT, STEAM, OPD, RTC), full-modality models (native PyTorch OpenPI π₀ / π₀.₅, Cosmos3, FastWAM, π₀-FAST, Evo-1, MolmoAct2, SD3 / Wan2.2), and eight accelerator backends. Release notes: [RLinf v0.4](https://rlinf.readthedocs.io/en/latest/rst_source/resources/release_v0.4.html).
